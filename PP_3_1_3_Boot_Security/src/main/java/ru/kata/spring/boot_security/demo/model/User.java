@@ -26,7 +26,7 @@ public class User implements UserDetails {
     @Size(min = 2, max = 10, message = "Имя в пределах от 2 до 10 знаков")
     @Pattern(regexp = "^[\\p{L}]+(?: [\\p{L}]+)*$", message = "Имя может содержать только буквы и пробелы")
     @Column(name = "name")
-    private String name;
+    private String username;
 
     @NotEmpty(message = "Фамилия не может быть пустой")
     @Size(min = 2, max = 15, message = "Фамилия в пределах от 2 до 15 знаков")
@@ -38,6 +38,8 @@ public class User implements UserDetails {
     @Email(message = "Почта должна быть валидная")
     @Column(name = "email")
     private String email;
+
+    private String password;
 
     @ManyToMany
     @JoinTable(name = "users_roles",
