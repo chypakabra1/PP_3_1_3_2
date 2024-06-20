@@ -4,36 +4,44 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import ru.kata.spring.boot_security.demo.service.UserServiceConfig;
 
 @Configuration
 @EnableWebSecurity
+//@EnableGlobalMethodSecurity(securedEnabled = true)
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private UserServiceConfig userServiceConfig;
 
-    @Autowired
+    /*@Autowired
     public void setUserServiceConfig(UserServiceConfig userServiceConfig) {
         this.userServiceConfig = userServiceConfig;
-    }
+    }*/
 
     private final SuccessUserHandler successUserHandler;
 
-    public WebSecurityConfig(SuccessUserHandler successUserHandler) {
+    private final UserDetailsService userDetailsService;
+
+    public WebSecurityConfig(SuccessUserHandler successUserHandler, UserDetailsService userDetailsService) {
         this.successUserHandler = successUserHandler;
+        this.userDetailsService = userDetailsService;
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-                .authorizeRequests()
+                /*.authorizeRequests()
                 .antMatchers("/", "/index").permitAll()
                 .anyRequest().authenticated()
                 .and()
@@ -41,7 +49,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .permitAll()
                 .and()
                 .logout()
-                .permitAll();
+                .permitAll();*/
+                .authorizeRequests()
+                //.antMatchers("/", "/index").permitAll()
+                .antMatchers("/authenticated/**").authenticated()
+                .antMatchers("/only_for_admins/**").hasRole("ADMIN")
+                .antMatchers("/read_profile/**").hasAuthority("READ_PROFILE")
+                //.antMatchers("/users/**").authenticated()
+                //.antMatchers("/user/**").hasRole("USER")
+                //.antMatchers("/index/**").hasRole("ADMIN")
+                .and()
+                .formLogin()
+                .and()
+                .logout().logoutSuccessUrl("/");
     }
 
     // аутентификация inMemory
@@ -64,10 +84,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
         /*return new InMemoryUserDetailsManager(user/*, admin);
     }*/
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        //return new BCryptPasswordEncoder();
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
+
     @Bean
     public DaoAuthenticationProvider daoauthenticationProvider() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userServiceConfig);
+        authenticationProvider.setPasswordEncoder(passwordEncoder());
+        authenticationProvider.setUserDetailsService(userDetailsService);
         return authenticationProvider;
     }
 }
